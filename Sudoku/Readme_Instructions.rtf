@@ -1,0 +1,15 @@
+Sudoku is a logic based, combinatorial number-placement puzzle. This Wikipedia reference could be of interest to you - https://en.wikipedia.org/wiki/Sudoku
+
+This folder has the software code in Java that would solve the game (through dynamic programming) for any board size (9x9 or 4x4). The current implementaion is a naive one and the following optimization could be applied as well - The algorithm starts with the first (0,0) while we could start with the one that has the least possible candidate values (count) and move to cells with larger values for the counts.
+
+Instructions and pre-requisites to execute this program
+------------------------------------------------------------------------
+
+1)	Make sure JRE is installed in your local Mac/PC. Download the JDK from Oracle's website. 
+2)	Ensure the PATH variable includes the path to the JDK location
+3)	Verify the Java version post install - $ java -version
+4)	Download the following core files from this location
+	- sudoku.java
+5)	Initialize the number of elements in the board (81 or 16).
+6)	Compile the files  [$ javac *.java]. This step should create the corresponding .class files in the current folder
+7)	Run the sudoku program [$ java sudoku]. Input the values to each cell. The program would come back with the end state (if solvable) or display a message 'Puzzle could not be solved' 
