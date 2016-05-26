@@ -1,0 +1,188 @@
+
+DROP BASE TABLE job_details;
+
+CREATE BASE TABLE job_details
+(
+   job_id              INT            NOT NULL AUTO_INCREMENT COMMENT 'Unique identifier for a job.',
+   job_name            VARCHAR(255)   NOT NULL COMMENT 'Job Name',
+   path                VARCHAR(255)   NOT NULL COMMENT 'Path of the job script',
+   data_pipeline_name  VARCHAR(255)   NOT NULL COMMENT 'Name of the Data Pipeline',
+   description         VARCHAR(500) COMMENT 'Quick Job Description',
+   last_update_time    TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL,
+   PRIMARY KEY (job_id)
+)
+ENGINE=InnoDB;
+
+
+DROP BASE TABLE job_run_status;
+
+CREATE BASE TABLE job_run_status
+(
+   job_instance_id  BIGINT         NOT NULL AUTO_INCREMENT COMMENT 'Unique identifier for the instance of a job run.',
+   job_id           INT            NOT NULL COMMENT 'Unique identifier for a job.',
+   job_start_time   TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL,
+   job_end_time     TIMESTAMP      DEFAULT '0000-00-00 00:00:00' NOT NULL,
+   job_run_status   VARCHAR(255) COMMENT 'Status of the instance of the run. Valid values - Success, Failure and Timedout',
+   PRIMARY KEY (job_instance_id)
+)
+ENGINE=InnoDB;
+
+ALTER TABLE job_run_status
+  ADD CONSTRAINT fk_run_status_job_id FOREIGN KEY (job_id)
+  REFERENCES job_details (job_id)
+  ON UPDATE NO ACTION
+  ON DELETE CASCADE
+  DEFERRABLE INITIALLY IMMEDIATE;
+
+
+DROP BASE TABLE job_constraints;
+
+CREATE BASE TABLE job_constraints
+(
+   job_id1  INT   NOT NULL COMMENT 'Unique identifier for a First Job.',
+   job_id2  INT   NOT NULL COMMENT 'Unique identifier for a Second Job.',
+   PRIMARY KEY (job_id1, job_id2)
+)
+ENGINE=InnoDB;
+
+ALTER TABLE job_constraints
+  ADD CONSTRAINT fk_constraints_job_id1 FOREIGN KEY (job_id1)
+  REFERENCES job_details (job_id)
+  ON UPDATE NO ACTION
+  ON DELETE CASCADE
+  DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE job_constraints
+  ADD CONSTRAINT fk_constraints_job_id2 FOREIGN KEY (job_id2)
+  REFERENCES job_details (job_id)
+  ON UPDATE NO ACTION
+  ON DELETE CASCADE
+  DEFERRABLE INITIALLY IMMEDIATE;
+
+  
+
+DROP BASE TABLE job_status;
+
+CREATE BASE TABLE job_status
+(
+   job_id              INT            NOT NULL AUTO_INCREMENT COMMENT 'Unique identifier for a job.',
+   job_status          VARCHAR(255)   NOT NULL COMMENT 'Job Status',
+   last_status_change  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL,
+   PRIMARY KEY (job_id)
+)
+ENGINE=InnoDB;
+
+ALTER TABLE job_status
+  ADD CONSTRAINT fk_job_id FOREIGN KEY (job_id)
+  REFERENCES job_details (job_id)
+  ON UPDATE RESTRICT
+  ON DELETE CASCADE
+  DEFERRABLE INITIALLY IMMEDIATE;
+
+    
+
+DROP BASE TABLE job_triggers;
+
+CREATE BASE TABLE job_triggers
+(
+   job_id       INT   NOT NULL COMMENT 'Unique identifier for a First Job.',
+   next_job_id  INT   NOT NULL COMMENT 'Unique identifier for a Second Job.',
+   PRIMARY KEY (job_id, next_job_id)
+)
+ENGINE=InnoDB;
+
+ALTER TABLE job_triggers
+  ADD CONSTRAINT fk_triggers_job_id FOREIGN KEY (job_id)
+  REFERENCES job_details (job_id)
+  ON UPDATE RESTRICT
+  ON DELETE CASCADE
+  DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE job_triggers
+  ADD CONSTRAINT fk_triggers_next_job_id FOREIGN KEY (next_job_id)
+  REFERENCES job_details (job_id)
+  ON UPDATE RESTRICT
+  ON DELETE CASCADE
+  DEFERRABLE INITIALLY IMMEDIATE;
+  
+
+CREATE VIEW job_constraints_vw
+(
+  job_name,
+  constraint_job_name
+)
+AS 
+select `jd1`.`job_name` AS `job_name`,`jd2`.`job_name` AS `constraint_job_name` from `scheduler`.`job_constraints` `jd` join `scheduler`.`job_details` `jd1` join `scheduler`.`job_details` `jd2` where ((`jd`.`job_id1` = `jd1`.`job_id`) and (`jd`.`job_id2` = `jd2`.`job_id`));
+
+
+ALTER TABLE job_constraints_vw MODIFY COLUMN job_name VARCHAR(255) COMMENT 'Job Name';
+ALTER TABLE job_constraints_vw MODIFY COLUMN constraint_job_name VARCHAR(255) COMMENT 'Job Name';
+
+
+CREATE VIEW job_details_vw
+(
+  job_id,
+  job_name,
+  path,
+  data_pipeline_name,
+  description,
+  last_update_time
+)
+AS 
+select `scheduler`.`job_details`.`job_id` AS `job_id`,`scheduler`.`job_details`.`job_name` AS `job_name`,`scheduler`.`job_details`.`path` AS `path`,`scheduler`.`job_details`.`data_pipeline_name` AS `data_pipeline_name`,`scheduler`.`job_details`.`description` AS `description`,`scheduler`.`job_details`.`last_update_time` AS `last_update_time` from `scheduler`.`job_details`;
+
+
+ALTER TABLE job_details_vw MODIFY COLUMN job_id INT COMMENT 'Unique identifier for a job.';
+ALTER TABLE job_details_vw MODIFY COLUMN job_name VARCHAR(255) COMMENT 'Job Name';
+ALTER TABLE job_details_vw MODIFY COLUMN path VARCHAR(255) COMMENT 'Path of the job script';
+ALTER TABLE job_details_vw MODIFY COLUMN data_pipeline_name VARCHAR(255) COMMENT 'Name of the Data Pipeline';
+ALTER TABLE job_details_vw MODIFY COLUMN description VARCHAR(500) COMMENT 'Quick Job Description';
+
+
+CREATE VIEW job_run_status_vw
+(
+  job_instance_id,
+  job_id,
+  job_name,
+  job_start_time,
+  job_end_time,
+  job_run_status
+)
+AS 
+select `js`.`job_instance_id` AS `job_instance_id`,`js`.`job_id` AS `job_id`,`jd`.`job_name` AS `job_name`,`js`.`job_start_time` AS `job_start_time`,`js`.`job_end_time` AS `job_end_time`,`js`.`job_run_status` AS `job_run_status` from (`scheduler`.`job_run_status` `js` join `scheduler`.`job_details` `jd`) where (`js`.`job_id` = `jd`.`job_id`);
+
+
+ALTER TABLE job_run_status_vw MODIFY COLUMN job_instance_id BIGINT COMMENT 'Unique identifier for the instance of a job run.';
+ALTER TABLE job_run_status_vw MODIFY COLUMN job_id INT COMMENT 'Unique identifier for a job.';
+ALTER TABLE job_run_status_vw MODIFY COLUMN job_name VARCHAR(255) COMMENT 'Job Name';
+ALTER TABLE job_run_status_vw MODIFY COLUMN job_run_status VARCHAR(255) COMMENT 'Status of the instance of the run. Valid values - Success, Failure and Timedout';
+
+
+CREATE VIEW job_status_vw
+(
+  job_id,
+  job_name,
+  job_status,
+  job_status_change
+)
+AS 
+select `js`.`job_id` AS `job_id`,`jd`.`job_name` AS `job_name`,`js`.`job_status` AS `job_status`,`js`.`last_status_change` AS `job_status_change` from `scheduler`.`job_status` `js` join `scheduler`.`job_details` `jd` where (`js`.`job_id` = `jd`.`job_id`);
+
+
+ALTER TABLE job_status_vw MODIFY COLUMN job_id INT COMMENT 'Unique identifier for a job.';
+ALTER TABLE job_status_vw MODIFY COLUMN job_name VARCHAR(255) COMMENT 'Job Name';
+ALTER TABLE job_status_vw MODIFY COLUMN job_status VARCHAR(255) COMMENT 'Job Status';
+
+
+CREATE VIEW job_triggers_vw
+(
+  job_name,
+  next_job_name
+)
+AS 
+select `jd1`.`job_name` AS `job_name`,`jd2`.`job_name` AS `next_job_name` from `scheduler`.`job_triggers` `jd` join `scheduler`.`job_details` `jd1` join `scheduler`.`job_details` `jd2` where ((`jd`.`job_id` = `jd1`.`job_id`) and (`jd`.`next_job_id` = `jd2`.`job_id`));
+
+
+ALTER TABLE job_triggers_vw MODIFY COLUMN job_name VARCHAR(255) COMMENT 'Job Name';
+ALTER TABLE job_triggers_vw MODIFY COLUMN next_job_name VARCHAR(255) COMMENT 'Job Name';
+
